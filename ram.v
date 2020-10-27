@@ -16,6 +16,10 @@ module ram(
 
 	reg [7:0] mem [63:0];
 	
+	initial begin;
+		$readmemb("ram.txt", mem);
+	end
+	
 	always @(posedge clk) begin
 		if(we) begin
 			mem[write_address] <= d;
