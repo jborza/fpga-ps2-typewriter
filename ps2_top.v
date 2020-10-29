@@ -1,13 +1,13 @@
 module ps2_top (
-	input wire clk, reset,
+	input wire clk, 
+	input wire reset, //active low
 	input wire ps2d, //PS2 data
 	input wire ps2c, //PS2 clock	
 	output wire led,
 	output wire rs, rw, en, //LCD control pins
 	output wire [7:0] dat, //LCD data
 	output wire [1:0] state_led,
-	output wire led_ps2c,
-	output wire out_ps2c
+	output wire led_ps2c
 );
 
 // signals
@@ -22,7 +22,7 @@ reg [7:0] ram_in;
 wire [7:0] ram_out;
 wire [7:0] ascii_scan_data;
 reg [5:0] current_address;
-wire neg_reset;
+reg [5:0] current_address_next;
 
 // states
 localparam [1:0]
@@ -34,7 +34,7 @@ localparam [1:0]
 // PS2 receiver
 ps2_rx ps2_rx_unit(
 	.clk(clk),
-	.reset(reset),
+	.reset(~reset),
 	.ps2d(ps2d),
 	.ps2c(ps2c),
 	.rx_en(1'b1),
@@ -68,18 +68,25 @@ key2ascii key2ascii(
 	.ascii_code(ascii_scan_data)
 );
 
-always @(posedge clk, posedge reset)
-	if(reset)
+//state registers
+always @(posedge clk, negedge reset)
+	if(~reset) begin
 		state_reg <= idle; //todo also clear the memory?
-	else
+		current_address <= 6'h0;
+	end else
+	begin
 		state_reg <= state_next;
+		current_address <= current_address_next;
+	end
 
+//next state logic
 always @*
 begin
 	state_next = state_reg;
 	we = 1'b0;
 	ram_in = 8'h3F;
 	write_address = 6'h0;
+	current_address_next = current_address;
 	
 	case(state_reg)
 	idle:
@@ -89,7 +96,7 @@ begin
 		end
 	send0: //write scan code
 		begin
-			write_address = 6'h2;
+			write_address = current_address;
 			ram_in = ascii_scan_data;
 			we = 1'b1;
 			state_next = done;
@@ -106,6 +113,7 @@ begin
 			//we = 1'b1;
 			//write_address = 6'h2;
 			state_next = idle;
+			current_address_next = current_address + 1;
 		end
 	endcase
 end
@@ -113,7 +121,5 @@ end
 assign led = ~scan_done_tick;
 assign state_led = ~state_reg;
 assign led_ps2c = ps2c;
-assign out_ps2c = ps2c;
-assign neg_reset = ~reset;
 
 endmodule

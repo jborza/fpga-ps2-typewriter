@@ -1,10 +1,10 @@
 module ps2_rx (
 	input wire clk, reset,
-	input wire ps2d,
+	input wire ps2d, //PS2 data
 	input wire ps2c, //PS2 clock
-	input wire rx_en,
-	output reg rx_done_tick,
-	output wire [7:0] dout
+	input wire rx_en, //receiver enable
+	output reg rx_done_tick, //signal that data is available
+	output wire [7:0] dout //PS2 scancode
 	);
 	
 // state
