@@ -9,7 +9,7 @@ txt = []
 txt.append("                ")
 txt.append("                ")
 txt.append("                ")
-txt.append("PS2 Keyboard    ")
+txt.append("               #")
 
 with open(f'ram.txt', 'w') as f:
     sys.stdout = f
