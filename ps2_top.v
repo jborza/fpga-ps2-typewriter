@@ -14,6 +14,7 @@ module ps2_top (
 reg [1:0] state_reg, state_next;
 wire [7:0] scan_data;
 wire scan_done_tick;
+wire ps2_make_break;
 
 reg we; //ram write enable
 reg [5:0] write_address;
@@ -27,18 +28,18 @@ reg [5:0] current_address_next;
 // states
 localparam [1:0]
 	idle = 2'b00,
-	send0 = 2'b01,
+	write_mem = 2'b01,
 	send1 = 2'b10,
 	done = 2'b11;
 
-// PS2 receiver
-ps2_rx ps2_rx_unit(
+ps2_keypress_driver ps2_keypress_driver_unit(
 	.clk(clk),
 	.reset(~reset),
 	.ps2d(ps2d),
 	.ps2c(ps2c),
 	.rx_en(1'b1),
 	.rx_done_tick(scan_done_tick),
+	.make_break(ps2_make_break),
 	.dout(scan_data)
 );
 
@@ -92,28 +93,21 @@ begin
 	idle:
 		if(scan_done_tick) //scan code received, push to display
 		begin
-			state_next = send0;	
+			state_next = write_mem;	
 		end
-	send0: //write scan code
+	write_mem: //write scan code
 		begin
 			write_address = current_address;
 			ram_in = ascii_scan_data;
-			we = 1'b1;
-			state_next = done;
-		end
-	send1:
-		begin
-			ram_in = scan_data;
-			write_address = 6'h1;
-			we = 1'b1;
+			we = ps2_make_break; //1 only for make codes
 			state_next = done;
 		end
 	done: //extra tick 
 		begin
-			//we = 1'b1;
-			//write_address = 6'h2;
 			state_next = idle;
-			current_address_next = current_address + 1;
+			if(ps2_make_break) begin
+				current_address_next = current_address + 1;
+			end
 		end
 	endcase
 end
