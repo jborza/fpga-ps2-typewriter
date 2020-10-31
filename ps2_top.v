@@ -6,7 +6,6 @@ module ps2_top (
 	output wire led,
 	output wire rs, rw, en, //LCD control pins
 	output wire [7:0] dat, //LCD data
-	output wire [1:0] state_led,
 	output wire led_ps2c
 );
 
@@ -27,6 +26,7 @@ reg [5:0] current_address;
 	
 localparam BACKSPACE = 8'h08;
 localparam SPACE = 8'h20;
+localparam RETURN = 8'h0d;
 
 ps2_keypress_driver ps2_keypress_driver_unit(
 	.clk(clk),
@@ -80,6 +80,11 @@ always @(posedge clk, negedge reset)
 				ram_in <= SPACE;
 				current_address <= current_address - 1;
 			end 
+			if(ascii_scan_data == RETURN) begin
+				//round to the nearest 16:
+				current_address <= (((current_address >> 4) + 1) << 4);
+				we <= 1'b0;
+			end
 			else begin //all other keys
 				write_address <= current_address;				
 				ram_in <= ascii_scan_data;	
